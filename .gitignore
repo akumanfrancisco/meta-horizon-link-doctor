@@ -1,0 +1,18 @@
+# saida de build
+dist/
+obj/
+
+# visual studio
+.vs/
+*.user
+*.suo
+*.userprefs
+*.csproj.user
+
+# sistema
+Thumbs.db
+desktop.ini
+.DS_Store
+
+# relatorios gerados pelo app
+mh-doctor-report.txt

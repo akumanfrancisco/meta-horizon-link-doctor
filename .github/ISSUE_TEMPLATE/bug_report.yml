@@ -1,0 +1,62 @@
+name: Relatar problema
+description: Reporte uma falha de instalacao ou um falso positivo do Doctor
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Obrigado por ajudar! Preencha os campos abaixo.
+
+        **O mais importante:** abra o app, clique em **Copiar relatorio** e cole
+        o conteudo no campo "Relatorio". Ele ja traz tudo o que e necessario
+        (nao contem dados pessoais).
+
+  - type: textarea
+    id: relat
+    attributes:
+      label: Relatorio do Doctor
+      description: Cole aqui o texto do botao "Copiar relatorio"
+      render: text
+      placeholder: |
+        Meta Horizon Link Doctor v1.0.0
+        Windows: 10.0.26200 (Windows 11)
+        [ERRO] Politica bloqueia drivers da classe ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: sintoma
+    attributes:
+      label: O que acontece
+      description: Descreva o que o instalador da Meta faz (tela, mensagem, quando para)
+      placeholder: "Ex.: baixa ate 100%, aparece 'Configuracao concluida' e depois volta para o inicio..."
+    validations:
+      required: true
+
+  - type: input
+    id: versao
+    attributes:
+      label: Versao do instalador da Meta
+      description: Propriedades do Setup.exe > Detalhes > Versao do arquivo
+      placeholder: "1.115.0.0"
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs (opcional)
+      description: |
+        Anexe os arquivos, se possivel:
+        - %LOCALAPPDATA%\Oculus\OculusSetup.log
+        - %LOCALAPPDATA%\Oculus\OculusDriverInstaller_*.log
+        - C:\Windows\INF\setupapi.dev.log
+      render: text
+
+  - type: checkboxes
+    id: confirmacoes
+    attributes:
+      label: Confirmacoes
+      options:
+        - label: Rodei o Doctor como administrador e cliquei em "Corrigir problemas"
+          required: true
+        - label: Tentei o instalador da Meta novamente depois da correcao
+          required: true

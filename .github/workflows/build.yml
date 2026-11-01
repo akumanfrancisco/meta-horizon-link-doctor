@@ -1,0 +1,66 @@
+name: build
+
+on:
+  push:
+    branches: [ main ]
+    tags: [ 'v*' ]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Definir versao
+        id: ver
+        shell: pwsh
+        run: |
+          $ref = "${{ github.ref_name }}"
+          $v = $ref -replace '^v', ''
+          if ($v -notmatch '^\d+\.\d+\.\d+') { $v = '1.0.0' }
+          "version=$v" >> $env:GITHUB_OUTPUT
+          Write-Host "Versao: $v"
+
+      - name: Compilar
+        shell: pwsh
+        run: ./build.ps1 -Version "${{ steps.ver.outputs.version }}"
+
+      - name: Gerar SHA256
+        shell: pwsh
+        run: |
+          $file = "dist/MetaHorizonLinkDoctor.exe"
+          $hash = (Get-FileHash $file -Algorithm SHA256).Hash
+          "$hash  MetaHorizonLinkDoctor.exe" | Set-Content "dist/SHA256SUMS" -Encoding ascii
+          Write-Host "SHA256: $hash"
+
+      - name: Empacotar
+        shell: pwsh
+        run: |
+          Compress-Archive -Path "dist/MetaHorizonLinkDoctor.exe", "dist/SHA256SUMS", "README.md", "LICENSE" `
+                           -DestinationPath "dist/MetaHorizonLinkDoctor-${{ steps.ver.outputs.version }}.zip" -Force
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: MetaHorizonLinkDoctor-${{ steps.ver.outputs.version }}
+          path: |
+            dist/MetaHorizonLinkDoctor.exe
+            dist/SHA256SUMS
+            dist/*.zip
+
+      - name: Publicar release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/MetaHorizonLinkDoctor.exe
+            dist/SHA256SUMS
+            dist/*.zip
+          generate_release_notes: true

@@ -1,4 +1,4 @@
-name: build
+﻿name: build
 
 on:
   push:
@@ -16,7 +16,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Definir versao
         id: ver
@@ -47,7 +47,7 @@ jobs:
                            -DestinationPath "dist/MetaHorizonLinkDoctor-${{ steps.ver.outputs.version }}.zip" -Force
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: MetaHorizonLinkDoctor-${{ steps.ver.outputs.version }}
           path: |
@@ -64,3 +64,4 @@ jobs:
             dist/SHA256SUMS
             dist/*.zip
           generate_release_notes: true
+

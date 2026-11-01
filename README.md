@@ -1,6 +1,6 @@
 # Meta Horizon Link Doctor
 
-[![build](https://github.com/SEU-USUARIO/meta-horizon-link-doctor/actions/workflows/build.yml/badge.svg)](https://github.com/SEU-USUARIO/meta-horizon-link-doctor/actions)
+[![build](https://github.com/akumanfrancisco/meta-horizon-link-doctor/actions/workflows/build.yml/badge.svg)](https://github.com/akumanfrancisco/meta-horizon-link-doctor/actions)
 
 Utilitário para Windows 10/11 que **descobre e corrige a causa real** da falha de
 instalação do **Meta Horizon Link** (antigo Oculus Link) — aquela em que o

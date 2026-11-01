@@ -16,7 +16,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7
 
       - name: Set version
         id: ver
@@ -47,7 +47,7 @@ jobs:
                            -DestinationPath "dist/MetaHorizonLinkDoctor-${{ steps.ver.outputs.version }}.zip" -Force
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v7
         with:
           name: MetaHorizonLinkDoctor-${{ steps.ver.outputs.version }}
           path: |
@@ -72,7 +72,7 @@ jobs:
 
       - name: Publish release (versioned notes)
         if: startsWith(github.ref, 'refs/tags/v') && steps.notes.outputs.exists == 'true'
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           body_path: ${{ steps.notes.outputs.path }}
           files: |
@@ -82,11 +82,12 @@ jobs:
 
       - name: Publish release (auto-generated notes)
         if: startsWith(github.ref, 'refs/tags/v') && steps.notes.outputs.exists != 'true'
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           generate_release_notes: true
           files: |
             dist/MetaHorizonLinkDoctor.exe
             dist/SHA256SUMS
             dist/*.zip
+
 

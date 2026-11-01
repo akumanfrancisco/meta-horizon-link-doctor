@@ -18,7 +18,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v5
 
-      - name: Definir versao
+      - name: Set version
         id: ver
         shell: pwsh
         run: |
@@ -26,13 +26,13 @@ jobs:
           $v = $ref -replace '^v', ''
           if ($v -notmatch '^\d+\.\d+\.\d+') { $v = '1.0.0' }
           "version=$v" >> $env:GITHUB_OUTPUT
-          Write-Host "Versao: $v"
+          Write-Host "Version: $v"
 
-      - name: Compilar
+      - name: Build
         shell: pwsh
         run: ./build.ps1 -Version "${{ steps.ver.outputs.version }}"
 
-      - name: Gerar SHA256
+      - name: Generate SHA256
         shell: pwsh
         run: |
           $file = "dist/MetaHorizonLinkDoctor.exe"
@@ -40,7 +40,7 @@ jobs:
           "$hash  MetaHorizonLinkDoctor.exe" | Set-Content "dist/SHA256SUMS" -Encoding ascii
           Write-Host "SHA256: $hash"
 
-      - name: Empacotar
+      - name: Package
         shell: pwsh
         run: |
           Compress-Archive -Path "dist/MetaHorizonLinkDoctor.exe", "dist/SHA256SUMS", "README.md", "LICENSE" `
@@ -56,7 +56,7 @@ jobs:
             dist/*.zip
 
       # Notas de release versionadas: docs/release-notes/<tag>.md
-      - name: Procurar notas da release
+      - name: Look for release notes
         id: notes
         shell: pwsh
         run: |
@@ -64,13 +64,13 @@ jobs:
           if (Test-Path $p) {
             "exists=true" >> $env:GITHUB_OUTPUT
             "path=$p"    >> $env:GITHUB_OUTPUT
-            Write-Host "Usando notas de $p"
+            Write-Host "Using notes from $p"
           } else {
             "exists=false" >> $env:GITHUB_OUTPUT
-            Write-Host "Sem arquivo de notas; usando notas automaticas"
+            Write-Host "No notes file; falling back to auto-generated notes"
           }
 
-      - name: Publicar release (notas versionadas)
+      - name: Publish release (versioned notes)
         if: startsWith(github.ref, 'refs/tags/v') && steps.notes.outputs.exists == 'true'
         uses: softprops/action-gh-release@v2
         with:
@@ -80,7 +80,7 @@ jobs:
             dist/SHA256SUMS
             dist/*.zip
 
-      - name: Publicar release (notas automaticas)
+      - name: Publish release (auto-generated notes)
         if: startsWith(github.ref, 'refs/tags/v') && steps.notes.outputs.exists != 'true'
         uses: softprops/action-gh-release@v2
         with:
@@ -89,3 +89,4 @@ jobs:
             dist/MetaHorizonLinkDoctor.exe
             dist/SHA256SUMS
             dist/*.zip
+

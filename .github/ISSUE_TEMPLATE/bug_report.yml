@@ -1,62 +1,62 @@
-name: Relatar problema
-description: Reporte uma falha de instalacao ou um falso positivo do Doctor
+name: Bug report
+description: Report an install failure or a false positive from the Doctor
 labels: ["bug"]
 body:
   - type: markdown
     attributes:
       value: |
-        Obrigado por ajudar! Preencha os campos abaixo.
+        Thanks for helping! Please fill in the fields below.
 
-        **O mais importante:** abra o app, clique em **Copiar relatorio** e cole
-        o conteudo no campo "Relatorio". Ele ja traz tudo o que e necessario
-        (nao contem dados pessoais).
+        **Most important:** open the app, click **Copy report** and paste the
+        content into the "Report" field. It already contains everything needed
+        (and no personal data).
 
   - type: textarea
-    id: relat
+    id: report
     attributes:
-      label: Relatorio do Doctor
-      description: Cole aqui o texto do botao "Copiar relatorio"
+      label: Doctor report
+      description: Paste the text from the "Copy report" button here
       render: text
       placeholder: |
         Meta Horizon Link Doctor v1.0.0
         Windows: 10.0.26200 (Windows 11)
-        [ERRO] Politica bloqueia drivers da classe ...
+        [FAIL] Policy blocks "Display adapters" class drivers
     validations:
       required: true
 
   - type: textarea
-    id: sintoma
+    id: symptom
     attributes:
-      label: O que acontece
-      description: Descreva o que o instalador da Meta faz (tela, mensagem, quando para)
-      placeholder: "Ex.: baixa ate 100%, aparece 'Configuracao concluida' e depois volta para o inicio..."
+      label: What happens
+      description: Describe what the Meta installer does (screen, message, when it stops)
+      placeholder: "E.g.: downloads up to 100%, shows 'Setup complete' and then goes back to the first screen..."
     validations:
       required: true
 
   - type: input
-    id: versao
+    id: installer_version
     attributes:
-      label: Versao do instalador da Meta
-      description: Propriedades do Setup.exe > Detalhes > Versao do arquivo
+      label: Meta installer version
+      description: Setup.exe properties > Details > File version
       placeholder: "1.115.0.0"
 
   - type: textarea
     id: logs
     attributes:
-      label: Logs (opcional)
+      label: Logs (optional)
       description: |
-        Anexe os arquivos, se possivel:
+        Attach these files if possible:
         - %LOCALAPPDATA%\Oculus\OculusSetup.log
         - %LOCALAPPDATA%\Oculus\OculusDriverInstaller_*.log
         - C:\Windows\INF\setupapi.dev.log
       render: text
 
   - type: checkboxes
-    id: confirmacoes
+    id: confirmations
     attributes:
-      label: Confirmacoes
+      label: Confirmations
       options:
-        - label: Rodei o Doctor como administrador e cliquei em "Corrigir problemas"
+        - label: I ran the Doctor as Administrator and clicked "Fix problems"
           required: true
-        - label: Tentei o instalador da Meta novamente depois da correcao
+        - label: I ran the Meta installer again after the fix
           required: true

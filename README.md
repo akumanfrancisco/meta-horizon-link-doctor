@@ -2,9 +2,12 @@
 
 [![build](https://github.com/akumanfrancisco/meta-horizon-link-doctor/actions/workflows/build.yml/badge.svg)](https://github.com/akumanfrancisco/meta-horizon-link-doctor/actions)
 
-Utilitário para Windows 10/11 que **descobre e corrige a causa real** da falha de
-instalação do **Meta Horizon Link** (antigo Oculus Link) — aquela em que o
-instalador baixa tudo, chega ao fim e desfaz tudo sem explicar o motivo.
+**🇺🇸 English** · **🇧🇷 [Português](README.pt-BR.md)**
+
+A Windows 10/11 utility that **finds and fixes the real cause** of the
+**Meta Horizon Link** (formerly Oculus Link) install failure — the one where the
+installer downloads everything, reaches the end, and rolls everything back
+without telling you why.
 
 <p align="center">
   <img src="assets/screenshot.png" alt="Meta Horizon Link Doctor" width="760">
@@ -12,13 +15,15 @@ instalador baixa tudo, chega ao fim e desfaz tudo sem explicar o motivo.
 
 ---
 
-## O problema
+## The problem
 
-O instalador da Meta (`Setup.exe` / "Dawn") baixa os pacotes, instala os drivers e
-só então o runtime. Se **qualquer** driver falhar, ele **reverte a instalação
-inteira** e mostra apenas *"ocorreu um erro… reinicie e tente de novo"*.
+The Meta installer (`Setup.exe` / "Dawn") downloads the packages, installs the
+drivers, and only then installs the runtime. If **any** driver fails, it
+**rolls back the entire installation** and shows only *"something went wrong,
+please restart"*.
 
-Na prática, a falha mais comum é esta, registrada no `setupapi.dev.log` do Windows:
+In practice, the most common blocker is this, from the Windows
+`setupapi.dev.log`:
 
 ```
 dvi:  Searching for hardware ID(s): root\metavirtualscreendriver
@@ -29,138 +34,126 @@ pol:  {Device installation policy check [ROOT\DISPLAY\0002] exit(0xe0000248)}
 dvi:  Installation of device is blocked by policy. Error = 0xE0000248
 ```
 
-O instalador precisa criar o dispositivo **"Meta Virtual Monitor"** (`ROOT\DISPLAY\...`),
-que pertence à classe **"Adaptadores de vídeo"**. Se existir uma política do Windows
-bloqueando essa classe de driver, o Windows recusa com `0xE0000248` e o instalador
-aborta.
+The installer must create the **"Meta Virtual Monitor"** device
+(`ROOT\DISPLAY\...`), which belongs to the **Display adapters** setup class. If
+a Windows policy blocks that driver class, Windows refuses with `0xE0000248` and
+the installer aborts.
 
-A política fica em:
+The policy lives at:
 
 ```
 HKLM\SOFTWARE\Policies\Microsoft\Windows\DeviceInstall\Restrictions\DenyDeviceClasses
 ```
 
-Ela costuma ser criada por "tweaks" de otimização de driver, ferramentas de
-bloqueio de driver de vídeo ou configurações de terceiros. Ela **também quebra o
-Virtual Desktop** e outros drivers virtuais de tela.
+It is usually created by driver-update "tweaks", video-driver blocking tools, or
+third-party configuration. It **also breaks Virtual Desktop** and other virtual
+display drivers.
 
-> Investigação completa com todas as evidências: **[docs/CAUSA-RAIZ.md](docs/CAUSA-RAIZ.md)**
+> Full investigation with all the log evidence: **[docs/ROOT-CAUSE.md](docs/ROOT-CAUSE.md)**
 
-## O que o aplicativo faz
+## What the app does
 
-Ele roda localmente, sem enviar nada para lugar nenhum, e verifica 12 pontos:
+It runs entirely locally (no telemetry) and checks 12 things:
 
-| Verificação | Corrige? |
+| Check | Can fix? |
 |---|---|
-| Windows 10/11 e build mínimo | — |
-| Permissão de administrador | — |
-| **Política bloqueando drivers de vídeo (`DenyDeviceClasses`)** | ✅ remove só o valor culpado, com backup `.reg` |
-| **`OVRService` apontando para arquivo inexistente / pasta de usuário** | ✅ remove só o registro do serviço |
-| Registro de instalação (`HKLM\...\Oculus\Base`) inconsistente | — |
-| **Pastas de instalação antigas** (Downloads, Desktop, outros discos) | ✅ renomeia para `*.old-<data>` (não apaga) |
-| **Acúmulo de crash dumps** do `OVRServerBreakpad` | ✅ apaga apenas os `.dmp` |
-| Reinicialização pendente | — |
-| Espaço livre / NTFS no disco do sistema | — |
-| Estado do dispositivo "Meta Virtual Monitor" (PnP) | — |
-| Versão do Meta Horizon Link já instalada | — |
-| Veredito final: pode instalar ou não | — |
+| Windows 10/11 and minimum build | — |
+| Administrator rights | — |
+| **Policy blocking display drivers (`DenyDeviceClasses`)** | ✅ removes only the offending value, with a `.reg` backup |
+| **`OVRService` pointing to a missing file / user folder** | ✅ removes only the service registration |
+| Inconsistent install registry (`HKLM\...\Oculus\Base`) | — |
+| **Leftover install folders** (Downloads, Desktop, other drives) | ✅ renames to `*.old-<date>` (does not delete) |
+| **OVRServer crash dump pileup** | ✅ deletes only the `.dmp` files |
+| Pending reboot | — |
+| Free space / NTFS on the system drive | — |
+| "Meta Virtual Monitor" device state (PnP) | — |
+| Installed Meta Horizon Link version | — |
+| Final verdict: safe to install or not | — |
 
-Tudo o que é alterado é **reversível** e aparece no relatório.
+Everything it changes is **reversible** and listed in the report.
 
-## Como usar
+## How to use
 
-1. Baixe `MetaHorizonLinkDoctor.exe` na página de **[Releases](../../releases)**.
-2. Dê duplo clique e aceite o UAC (o app precisa de administrador para ler/escrever
-   em `HKLM` e nos serviços).
-3. Clique em **Corrigir problemas** (se houver algo em vermelho/laranja).
-4. Clique em **Baixar instalador** e rode o instalador oficial da Meta.
+1. Download `MetaHorizonLinkDoctor.exe` from the **[Releases](../../releases)** page.
+2. Double-click it and accept the UAC prompt (it needs administrator to read/write
+   `HKLM` and services).
+3. Click **Fix problems** (if anything is red/amber).
+4. Click **Get installer** and run the official Meta installer.
 
-### "O Windows protegeu o seu PC"
+The interface is automatically in Portuguese or English, depending on your
+Windows language (override with the environment variable `MHDOCTOR_LANG=en`).
 
-O `.exe` não tem assinatura digital (certificado de code signing custa dinheiro).
-O Windows mostra esse aviso para qualquer executável novo baixado da internet.
-O código-fonte é público e você pode compilar você mesmo com `build.ps1`.
+### "Windows protected your PC"
 
-Se quiser conferir a integridade, cada Release publica um `SHA256SUMS`:
+The `.exe` is not code-signed (a code-signing certificate costs money), so
+Windows shows that warning for any freshly downloaded executable. The source is
+public and you can build it yourself with `build.ps1`.
+
+Every release also publishes a `SHA256SUMS`, so you can verify it:
 
 ```powershell
 Get-FileHash .\MetaHorizonLinkDoctor.exe -Algorithm SHA256
 ```
 
-### Modo linha de comando (para dar suporte)
+### Command line (for support threads)
 
 ```text
-MetaHorizonLinkDoctor.exe --scan                 # só diagnostica, grava mh-doctor-report.txt
-MetaHorizonLinkDoctor.exe --fix                  # corrige tudo e grava o relatório
+MetaHorizonLinkDoctor.exe --scan                 # diagnose only, writes mh-doctor-report.txt
+MetaHorizonLinkDoctor.exe --fix                  # fix everything and write the report
 MetaHorizonLinkDoctor.exe --scan --out C:\temp\r.txt
 ```
 
-Código de saída: `0` = nenhum bloqueio, `2` = bloqueios encontrados.
-No modo `--scan` **nada é alterado**.
+Exit code: `0` = no blockers, `2` = blockers found.
+In `--scan` mode **nothing is changed**.
 
-Também existe um script somente-leitura para colar o resultado numa issue:
+There is also a read-only script to paste into an issue:
 [`scripts/diagnose.ps1`](scripts/diagnose.ps1).
 
-## O que NÃO é feito
+## What it does NOT do
 
-- Não baixa nem instala o Meta Horizon Link por você (isso é feito pelo instalador oficial).
-- Não mexe em drivers de vídeo já instalados, nem desinstala nada.
-- Não envia telemetria, não acessa a internet (exceto o botão "Baixar instalador",
-  que abre o site da Meta no seu navegador).
+- It does not download or install Meta Horizon Link for you (that is the official
+  installer's job).
+- It does not touch already-installed display drivers or uninstall anything.
+- It does not send telemetry or access the internet (except the "Get installer"
+  button, which opens Meta's website in your browser).
 
-## Compilar
+## Build
 
-Requisitos: Windows + Visual Studio 2022 (ou Build Tools) com o workload
-*.NET desktop development* — **não precisa de .NET SDK**.
+Requirements: Windows + Visual Studio 2022 (or Build Tools) with the
+*.NET desktop development* workload — **no .NET SDK needed**.
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File build.ps1
-# opcional: -Version 1.2.3 -OutputDir .\dist
+# optional: -Version 1.2.3 -OutputDir .\dist
 ```
 
-Saída: `dist\MetaHorizonLinkDoctor.exe` (~80 KB, roda em qualquer Windows 10/11
-com o .NET Framework 4.8 que já vem no sistema).
+Output: `dist\MetaHorizonLinkDoctor.exe` (~80 KB, runs on any Windows 10/11 with
+the built-in .NET Framework 4.8).
 
-O workflow em [`.github/workflows/build.yml`](.github/workflows/build.yml) compila
-e publica automaticamente em cada tag `v*`.
+The workflow in [`.github/workflows/build.yml`](.github/workflows/build.yml)
+builds and publishes a release on every `v*` tag. Release notes are taken from
+`docs/release-notes/<tag>.md` when that file exists.
 
-## Estrutura
+## Repository layout
 
 ```
-src/            código C# (WinForms, .NET Framework 4.8)
-build.ps1       compilação via csc.exe do Visual Studio
-scripts/        diagnose.ps1 (diagnóstico somente-leitura)
-docs/           causa raiz, evidências e scripts originais da investigação
-assets/         ícone e screenshot
+src/                     C# source (WinForms, .NET Framework 4.8)
+build.ps1                build script (uses the Visual Studio csc.exe)
+scripts/diagnose.ps1     read-only diagnostic
+docs/                    root cause, evidence and the original investigation scripts
+assets/                  icon and screenshot
 ```
 
-## Contribuindo
+## Contributing
 
-Abra uma issue usando o template e **cole o relatório gerado pelo app**
-(botão *Copiar relatório*). Ele contém exatamente o que é necessário para
-diagnosticar, sem dados pessoais.
+Open an issue using the template and **paste the report generated by the app**
+(*Copy report* button). It contains exactly what is needed to diagnose the
+problem, without personal data.
 
-## Licença
+## License
 
-MIT — veja [LICENSE](LICENSE).
+MIT — see [LICENSE](LICENSE).
 
----
-
-## English
-
-**Meta Horizon Link Doctor** finds and fixes the real cause of the Meta Horizon
-Link install failure on Windows 10/11.
-
-The Meta installer downloads everything, installs the drivers, and if **any**
-driver fails it rolls back the whole installation with a generic error. The most
-common blocker is a Windows policy that forbids installing **Display class**
-drivers (`{4d36e968-e325-11ce-bfc1-08002be10318}`), which makes the
-"Meta Virtual Monitor" (`ROOT\DISPLAY\...`) fail with `0xE0000248`.
-
-The app checks 12 items locally (no telemetry), offers reversible one-click fixes
-(registry value removal with `.reg` backup, stale `OVRService` cleanup, leftover
-install folders renamed, crash dump cleanup) and produces a report you can paste
-into an issue.
-
-Run `MetaHorizonLinkDoctor.exe`, click **Fix problems**, then run the official
-Meta installer. CLI: `--scan` / `--fix` / `--out <file>`.
+Not affiliated with, endorsed by, or sponsored by Meta Platforms, Inc.
+"Meta", "Meta Horizon", "Meta Quest" and "Oculus" are trademarks of their
+respective owners.

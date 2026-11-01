@@ -1,16 +1,16 @@
 <#
-    build.ps1 - compila o MetaHorizonLinkDoctor.exe
+    build.ps1 - builds MetaHorizonLinkDoctor.exe
 
-    Nao precisa de .NET SDK: usa o compilador C# (csc.exe) que vem com o
-    Visual Studio / Build Tools 2017+ (workload ".NET desktop development")
-    ou com o VS Community.
+    No .NET SDK required: uses the C# compiler (csc.exe) that ships with
+    Visual Studio / Build Tools 2017+ (".NET desktop development" workload)
+    or VS Community.
 
-    Saida: dist\MetaHorizonLinkDoctor.exe (auto-contido, roda em qualquer
-    Windows 10/11 com .NET Framework 4.8, que ja vem no sistema).
+    Output: dist\MetaHorizonLinkDoctor.exe (self-contained, runs on any
+    Windows 10/11 with .NET Framework 4.8, which is part of the OS).
 
-    Uso:
+    Usage:
         powershell -ExecutionPolicy Bypass -File build.ps1
-        powershell -ExecutionPolicy Bypass -File build.ps1 -Version 1.2.3
+        powershell -ExecutionPolicy Bypass -File build.ps1 -Version 1.2.3 -OutputDir .\dist
 #>
 param(
     [string]$Version = "1.0.0",
@@ -22,7 +22,7 @@ $root = Split-Path -Parent $MyInvocation.MyCommand.Path
 if (-not $OutputDir) { $OutputDir = Join-Path $root "dist" }
 New-Item -ItemType Directory -Force -Path $OutputDir | Out-Null
 
-# ---------------------------------------------------------------- localiza o csc.exe
+# ---------------------------------------------------------------- locate csc.exe
 function Find-Csc {
     $vswhere = Join-Path ${env:ProgramFiles(x86)} "Microsoft Visual Studio\Installer\vswhere.exe"
     if (Test-Path $vswhere) {
@@ -43,13 +43,13 @@ function Find-Csc {
     $fw = Join-Path $env:WINDIR "Microsoft.NET\Framework64\v4.0.30319"
     if (Test-Path (Join-Path $fw "csc.exe")) { return (Join-Path $fw "csc.exe") }
 
-    throw "csc.exe nao encontrado. Instale o Visual Studio Build Tools com '.NET desktop development'."
+    throw "csc.exe not found. Install the Visual Studio Build Tools with '.NET desktop development'."
 }
 
 $csc = Find-Csc
 Write-Host "csc: $csc"
 
-# ---------------------------------------------------------------- referencias do .NET Framework
+# ---------------------------------------------------------------- .NET Framework references
 $fwDir = Join-Path $env:WINDIR "Microsoft.NET\Framework64\v4.0.30319"
 $refs = @(
     "System.dll",
@@ -61,7 +61,7 @@ $refs = @(
 ) | ForEach-Object { Join-Path $fwDir $_ }
 
 foreach ($r in $refs) {
-    if (-not (Test-Path $r)) { throw "Referencia ausente: $r" }
+    if (-not (Test-Path $r)) { throw "Missing reference: $r" }
 }
 
 $sources = Get-ChildItem (Join-Path $root "src") -Filter *.cs -Recurse |
@@ -85,7 +85,7 @@ if (Test-Path $iconPath) { $cscArgs.Add("/win32icon:" + $iconPath) }
 foreach ($r in $refs) { $cscArgs.Add("/reference:" + $r) }
 foreach ($s in $sources) { $cscArgs.Add($s) }
 
-# ---------------------------------------------------------------- AssemblyInfo gerado
+# ---------------------------------------------------------------- generated AssemblyInfo
 $fileVersion = if ($Version.Split(".").Count -ge 4) { $Version } else { "$Version.0" }
 
 $objDir = Join-Path $root "obj"
@@ -95,7 +95,7 @@ $assemblyInfo = Join-Path $objDir "AssemblyInfo.g.cs"
 @"
 using System.Reflection;
 [assembly: AssemblyTitle("Meta Horizon Link Doctor")]
-[assembly: AssemblyDescription("Diagnostico e correcao da falha de instalacao do Meta Horizon Link no Windows 10/11")]
+[assembly: AssemblyDescription("Diagnoses and fixes the Meta Horizon Link install failure on Windows 10/11")]
 [assembly: AssemblyCompany("Meta Horizon Link Doctor contributors")]
 [assembly: AssemblyProduct("Meta Horizon Link Doctor")]
 [assembly: AssemblyCopyright("MIT License")]
@@ -106,9 +106,9 @@ using System.Reflection;
 
 $cscArgs.Add($assemblyInfo)
 
-Write-Host "Compilando $($sources.Count) arquivos..."
+Write-Host "Compiling $($sources.Count) files..."
 & $csc $cscArgs.ToArray()
-if ($LASTEXITCODE -ne 0) { throw "Falha na compilacao (exit $LASTEXITCODE)" }
+if ($LASTEXITCODE -ne 0) { throw "Build failed (exit $LASTEXITCODE)" }
 
 $info = Get-Item $outExe
 $hash = (Get-FileHash $outExe -Algorithm SHA256).Hash

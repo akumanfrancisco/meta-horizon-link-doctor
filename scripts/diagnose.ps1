@@ -1,10 +1,10 @@
 <#
-    diagnose.ps1 - diagnostico SOMENTE LEITURA do Meta Horizon Link no Windows.
+    diagnose.ps1 - READ-ONLY diagnosis of Meta Horizon Link on Windows.
 
-    Nao altera nada. Serve para colar o resultado em uma issue mas tambem
-    funciona sozinho, caso a pessoa prefira nao executar o .exe.
+    Changes nothing. Use it to paste the result into an issue, or when the
+    person prefers not to run the .exe.
 
-    Uso:
+    Usage:
         powershell -ExecutionPolicy Bypass -File diagnose.ps1
         powershell -ExecutionPolicy Bypass -File diagnose.ps1 | Out-File report.txt
 #>
@@ -16,17 +16,17 @@ $DenyKey = "HKLM:\SOFTWARE\Policies\Microsoft\Windows\DeviceInstall\Restrictions
 function Line($status, $text) { "{0} {1}" -f $status.PadRight(6), $text }
 function Head($text) { ""; "== $text" }
 
-"Meta Horizon Link Doctor - diagnostico (somente leitura)"
-"Data: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')"
-"Computador: $env:COMPUTERNAME   Usuario: $env:USERNAME"
+"Meta Horizon Link Doctor - read-only diagnosis"
+"Date: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')"
+"Computer: $env:COMPUTERNAME   User: $env:USERNAME"
 ""
 
-Head "Sistema"
+Head "System"
 $os = Get-CimInstance Win32_OperatingSystem
 Line "INFO" "$($os.Caption) build $($os.BuildNumber)"
-Line "INFO" "Arquitetura: $($os.OSArchitecture)"
+Line "INFO" "Architecture: $($os.OSArchitecture)"
 
-Head "Politica de instalacao de drivers (classe Display)"
+Head "Driver install policy (Display class)"
 $blocked = @()
 if (Test-Path $DenyKey) {
     $item = Get-Item $DenyKey
@@ -35,19 +35,19 @@ if (Test-Path $DenyKey) {
         if ($v.Trim().TrimStart('{').TrimEnd('}').ToLower() -eq $DisplayClassGuid.Trim('{','}').ToLower()) {
             $blocked += "$n = $v"
         } elseif ($v) {
-            Line "INFO" "outra classe bloqueada: $n = $v"
+            Line "INFO" "another blocked class: $n = $v"
         }
     }
 }
 if ($blocked.Count -gt 0) {
-    Line "ERRO" "POLITICA BLOQUEANDO DRIVERS DE VIDEO (causa mais comum da falha):"
+    Line "FAIL" "POLICY BLOCKING DISPLAY DRIVERS (most common cause of the failure):"
     $blocked | ForEach-Object { "         $_" }
     "         -> HKLM\$($DenyKey -replace '^HKLM:\\','')"
 } else {
-    Line "OK"   "nenhuma politica bloqueando a classe Display"
+    Line "OK"   "no policy blocking the Display class"
 }
 
-Head "Servico OVRService"
+Head "OVRService"
 $svcKey = "HKLM:\SYSTEM\CurrentControlSet\Services\OVRService"
 if (Test-Path $svcKey) {
     $image = (Get-ItemProperty $svcKey).ImagePath
@@ -55,29 +55,29 @@ if (Test-Path $svcKey) {
     if (Test-Path $exe) {
         Line "OK" "OVRService -> $exe"
     } else {
-        Line "ERRO" "OVRService aponta para arquivo inexistente: $exe"
+        Line "FAIL" "OVRService points to a missing file: $exe"
     }
     $st = (Get-Service OVRService).Status
-    Line "INFO" "estado do servico: $st"
+    Line "INFO" "service state: $st"
 } else {
-    Line "OK" "OVRService nao registrado (ambiente limpo)"
+    Line "OK" "OVRService not registered (clean environment)"
 }
 
-Head "Registro de instalacao"
+Head "Install registry"
 $base = (Get-ItemProperty "HKLM:\SOFTWARE\WOW6432Node\Oculus VR, LLC\Oculus").Base
 if ($base) {
     if (Test-Path $base) {
         Line "OK" "Base = $base"
         $ver = Get-Content (Join-Path $base "Support\oculus-client\version")
-        if ($ver) { Line "INFO" "cliente: $ver" }
+        if ($ver) { Line "INFO" "client: $ver" }
     } else {
-        Line "ERRO" "Base aponta para pasta inexistente: $base"
+        Line "FAIL" "Base points to a missing folder: $base"
     }
 } else {
-    Line "INFO" "chave Base nao existe"
+    Line "INFO" "Base key does not exist"
 }
 
-Head "Pastas de instalacao antigas"
+Head "Leftover install folders"
 $candidates = @(
     (Join-Path $env:USERPROFILE "Downloads\Oculus"),
     (Join-Path $env:USERPROFILE "Desktop\Oculus"),
@@ -92,7 +92,7 @@ foreach ($c in $candidates) {
     if (-not (Test-Path $c)) { continue }
     if ($base -and $c.TrimEnd('\') -eq $base.TrimEnd('\')) { continue }
 
-    # so reporta se realmente parecer uma instalacao (evita cache/temp)
+    # only report if it really looks like an install (avoids cache/temp noise)
     $markers = @(
         "Support\oculus-runtime\OVRServer_x64.exe",
         "Oculus\Support\oculus-runtime\OVRServer_x64.exe",
@@ -105,39 +105,39 @@ foreach ($c in $candidates) {
     foreach ($m in $markers) { if (Test-Path (Join-Path $c $m)) { $isInstall = $true; break } }
 
     if ($isInstall) {
-        Line "AVIS" "pasta de instalacao antiga: $c"
+        Line "WARN" "leftover install folder: $c"
         $found = $true
     }
 }
-if (-not $found) { Line "OK" "nenhuma pasta antiga conhecida" }
+if (-not $found) { Line "OK" "no known leftover folder" }
 
-Head "Crash dumps do OVRServer"
+Head "OVRServer crash dumps"
 $dumpDir = Join-Path $env:LOCALAPPDATA "Oculus\OVRServerBreakpad"
 if (Test-Path $dumpDir) {
     $dumps = Get-ChildItem $dumpDir -Filter *.dmp
     $mb = [math]::Round(($dumps | Measure-Object Length -Sum).Sum / 1MB, 1)
     if ($dumps.Count -gt 500) {
-        Line "AVIS" "$($dumps.Count) dumps ($mb MB) - pode travar o cliente no splash"
+        Line "WARN" "$($dumps.Count) dumps ($mb MB) - may keep the client stuck on the splash screen"
     } else {
         Line "OK"   "$($dumps.Count) dumps ($mb MB)"
     }
 } else {
-    Line "OK" "sem pasta de dumps"
+    Line "OK" "no dump folder"
 }
 
-Head "Dispositivo Meta Virtual Monitor"
+Head "Meta Virtual Monitor device"
 $dev = Get-PnpDevice -Class Display | Where-Object { $_.FriendlyName -match 'Meta' }
 if ($dev) {
     foreach ($d in $dev) { Line "INFO" "$($d.FriendlyName) - $($d.Status) ($($d.InstanceId))" }
 } else {
-    Line "INFO" "nao instalado (normal antes de instalar o Link)"
+    Line "INFO" "not installed (normal before installing Link)"
 }
 
-Head "Disco e reinicializacao"
+Head "Disk and reboot"
 $sys = Get-PSDrive C
-Line "INFO" ("C: {0} GB livres" -f [math]::Round($sys.Free / 1GB, 1))
+Line "INFO" ("C: {0} GB free" -f [math]::Round($sys.Free / 1GB, 1))
 $pending = Test-Path "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Component Based Servicing\RebootPending"
-if ($pending) { Line "AVIS" "reinicializacao pendente" } else { Line "OK" "nenhuma reinicializacao pendente" }
+if ($pending) { Line "WARN" "pending reboot" } else { Line "OK" "no pending reboot" }
 
 ""
-"Fim do diagnostico. Nada foi alterado."
+"End of diagnosis. Nothing was changed."
